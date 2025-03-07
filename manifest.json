@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "PTCGP Tracker Tools",
+  "version": "1.0.0",
+  "description": "Enhance your PTCGP Tracker trading experience",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://ptcgp-tracker.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "index.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://ptcgp-tracker.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_end"
+    }
+  ]
+}

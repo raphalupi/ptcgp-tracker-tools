@@ -1,0 +1,28 @@
+/* Styles for injecting into the game website */
+.ptcgp-tools {
+  /* Namespace all our injected styles to avoid conflicts */
+  --highlight-color: oklch(0.646 0.222 41.116);
+  --highlight-bg: oklch(0.646 0.222 41.116 / 0.1);
+}
+
+.ptcgp-tools-highlight {
+  position: relative;
+  border: 2px solid var(--highlight-color) !important;
+  box-shadow: 0 0 5px oklch(var(--highlight-color) / 0.5);
+}
+
+.ptcgp-tools-overlay {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  padding: 1rem;
+  background: oklch(1 0 0 / 0.95);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 10px oklch(0 0 0 / 0.1);
+  z-index: 9999;
+}
+
+.dark .ptcgp-tools-overlay {
+  background: oklch(0.145 0 0 / 0.95);
+  color: oklch(0.985 0 0);
+} 
