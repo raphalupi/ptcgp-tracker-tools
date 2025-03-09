@@ -68,15 +68,50 @@ const highlightMatchingCards = (opportunities: TradingOpportunity) => {
     style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
+      .card[data-rarity]:after {
+        font-size: 2rem;
+      }
       .card.trading-match-they-have {
+        position: relative;
         border: 2px solid gold !important;
         box-shadow: 0 0 5px gold !important;
         transition: all 0.2s ease-in-out;
       }
+      .card.trading-match-they-have::before {
+        content: 'You want it';
+        position: absolute;
+        bottom: 4px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: gold;
+        color: black;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        white-space: nowrap;
+        opacity: 0.9;
+        z-index: 10;
+      }
       .card.trading-match-you-have {
+        position: relative;
         border: 2px solid #4CAF50 !important;
         box-shadow: 0 0 5px #4CAF50 !important;
         transition: all 0.2s ease-in-out;
+      }
+      .card.trading-match-you-have::before {
+        content: 'You have it';
+        position: absolute;
+        bottom: 4px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #4CAF50;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        white-space: nowrap;
+        opacity: 0.9;
+        z-index: 10;
       }
     `;
     document.head.appendChild(style);
