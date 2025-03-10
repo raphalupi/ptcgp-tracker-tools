@@ -68,46 +68,22 @@ export const TradingSettings = () => {
 
   // Save settings when they change
   useEffect(() => {
-    chrome.storage.local.set({
-      tradingSettings: {
-        showTradeOverlay,
-        showMatchedOnly,
-        rarityToggles
-      }
-    });
-  }, [showTradeOverlay, showMatchedOnly, rarityToggles]);
+    const settings = {
+      showTradeOverlay,
+      showMatchedOnly,
+      rarityToggles
+    };
 
-  // Update CSS classes on the body when toggles change
-  useEffect(() => {
-    // Get all tabs and update them
+    // Save to storage
+    chrome.storage.local.set({ tradingSettings: settings });
+
+    // Send message to content script to apply settings
     chrome.tabs.query({ url: 'https://ptcgp-tracker.com/*' }, (tabs) => {
       tabs.forEach(tab => {
         if (tab.id) {
-          // Execute script to update body attributes
-          chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: (showOverlay: boolean, matchedOnly: boolean, toggles: RarityToggles) => {
-              if (showOverlay) {
-                document.body.classList.add('show-trade-overlay');
-              } else {
-                document.body.classList.remove('show-trade-overlay');
-              }
-
-              if (matchedOnly) {
-                document.body.classList.add('show-matched-only');
-              } else {
-                document.body.classList.remove('show-matched-only');
-              }
-
-              // Update rarity visibility
-              Object.entries(toggles).forEach(([rarity, isVisible]) => {
-                document.documentElement.style.setProperty(
-                  `--${rarity}-display`,
-                  isVisible ? 'block' : 'none'
-                );
-              });
-            },
-            args: [showTradeOverlay, showMatchedOnly, rarityToggles]
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'updateTradingSettings',
+            settings
           }).catch(console.error);
         }
       });

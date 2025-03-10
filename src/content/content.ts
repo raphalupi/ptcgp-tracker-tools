@@ -219,6 +219,49 @@ function highlightMatchingCards(opportunities: TradingOpportunity): void {
   highlightCards(opportunities.myTradableTheyWant, 'trading-match-you-have');
 }
 
+// Function to apply settings to the page
+async function applySettingsToPage(): Promise<void> {
+  const settings = await loadTradingSettings();
+  console.log('Applying settings to page:', settings);
+
+  // Apply trade overlay setting
+  if (settings.showTradeOverlay) {
+    document.body.classList.add('show-trade-overlay');
+  } else {
+    document.body.classList.remove('show-trade-overlay');
+  }
+
+  // Check if we're on our own profile
+  const tradingData = getTradingDataFromPage();
+  console.log('Trading data from page:', tradingData);
+  
+  // If we can't get trading data, assume we're on our own profile
+  const isOwnProfilePage = !tradingData || isOwnProfile(tradingData);
+  console.log('Is own profile page:', isOwnProfilePage);
+
+  // Only apply matched cards only setting if we're not on our own profile
+  if (!isOwnProfilePage) {
+    console.log('Applying matched cards only setting for other profile');
+    if (settings.showMatchedOnly) {
+      document.body.classList.add('show-matched-only');
+    } else {
+      document.body.classList.remove('show-matched-only');
+    }
+  } else {
+    // Always remove the class on own profile
+    console.log('Removing matched cards only class for own profile');
+    document.body.classList.remove('show-matched-only');
+  }
+
+  // Apply rarity visibility settings
+  Object.entries(settings.rarityToggles).forEach(([rarityCode, isVisible]) => {
+    document.documentElement.style.setProperty(
+      `--${rarityCode}-display`,
+      isVisible ? 'block' : 'none'
+    );
+  });
+}
+
 // Main analysis function
 async function analyzeTradingPage(): Promise<void> {
   console.log('Starting trading page analysis...');
@@ -227,7 +270,7 @@ async function analyzeTradingPage(): Promise<void> {
  
   const tradingData = getTradingDataFromPage();
   if (!tradingData || !tradingData.viewed_profile) {
-    console.log('No trading data found');
+    console.log('No trading data found, skipping analysis');
     return;
   }
 
@@ -241,26 +284,8 @@ async function analyzeTradingPage(): Promise<void> {
   // Always apply the classes for matching cards
   highlightMatchingCards(opportunities);
 
-  // Apply CSS classes to body based on settings
-  if (settings.showTradeOverlay) {
-    document.body.classList.add('show-trade-overlay');
-  } else {
-    document.body.classList.remove('show-trade-overlay');
-  }
-
-  if (settings.showMatchedOnly) {
-    document.body.classList.add('show-matched-only');
-  } else {
-    document.body.classList.remove('show-matched-only');
-  }
-
-  // Apply rarity visibility settings
-  Object.entries(settings.rarityToggles).forEach(([rarityCode, isVisible]) => {
-    document.documentElement.style.setProperty(
-      `--${rarityCode}-display`,
-      isVisible ? 'block' : 'none'
-    );
-  });
+  // Apply settings to the page
+  await applySettingsToPage();
 
   console.log('Trading analysis complete:', {
     cardsTheyHaveThatIWant: Array.from(opportunities.theirTradableIWant.entries()).reduce((total, [, cards]) => total + cards.size, 0),
@@ -281,7 +306,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message.action === 'updateTradingSettings') {
     saveTradingSettings(message.settings)
-      .then(() => sendResponse(true))
+      .then(() => {
+        // Apply the new settings immediately
+        applySettingsToPage();
+        sendResponse(true);
+      })
       .catch(() => sendResponse(false));
     return true;
   }
@@ -297,5 +326,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return true;
 });
 
-// Run analysis when loaded
-analyzeTradingPage(); 
+// Run analysis and apply settings when loaded
+console.log('Starting initial analysis and applying settings...');
+Promise.all([
+  analyzeTradingPage(),
+  applySettingsToPage()
+]).catch(error => {
+  console.error('Error during initialization:', error);
+}); 
