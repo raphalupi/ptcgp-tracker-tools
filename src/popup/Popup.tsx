@@ -2,20 +2,21 @@ import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Accordion } from '@/components/ui/accordion';
-import { AccountSetup } from '@/components/accordions/AccountSetup';
+import { MyProfile } from '@/components/accordions/MyProfile';
 import { TradingSettings } from '@/components/accordions/TradingSettings';
 import { Footer } from '@/components/Footer';
-import { checkSetupStatus } from '@/lib/setup-status';
+import { getTradingData } from '@/lib/trading-utils';
 
 const PopupContent = () => {
   const [openSections, setOpenSections] = useState<string[]>([]);
 
   useEffect(() => {
-    // Only check initial setup status to determine which accordion to open
-    chrome.storage.local.get(['profileUrl', 'collection'], (result) => {
-      const status = checkSetupStatus(result.profileUrl || null, result.collection || null);
-      setOpenSections(status.needsAttention ? ['account'] : ['trading']);
-    });
+    // Check if we have profile data to determine which accordion to open
+    const loadData = async () => {
+      const tradingData = await getTradingData();
+      setOpenSections(tradingData?.profile ? ['trading'] : ['profile']);
+    };
+    loadData();
   }, []);
 
   return (
@@ -32,7 +33,7 @@ const PopupContent = () => {
           onValueChange={setOpenSections}
           className="w-full"
         >
-          <AccountSetup />
+          <MyProfile />
           <TradingSettings />
         </Accordion>
       </div>
@@ -43,7 +44,7 @@ const PopupContent = () => {
 
 export default function Popup() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="ptcgp-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="ptcgp-theme">
       <PopupContent />
     </ThemeProvider>
   );
