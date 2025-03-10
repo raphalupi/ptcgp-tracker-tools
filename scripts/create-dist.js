@@ -26,11 +26,8 @@ archive.on('error', (err) => {
 // Pipe archive data to the file
 archive.pipe(output);
 
-// Add manifest.json
-archive.file(path.join(__dirname, '../manifest.json'), { name: 'manifest.json' });
-
-// Add the dist directory contents
-archive.directory(path.join(__dirname, '../dist/'), 'dist');
+// Add the dist directory contents at the root level
+archive.directory(path.join(__dirname, '../dist/'), '');
 
 // Add README.md
 archive.file(path.join(__dirname, '../README.md'), { name: 'README.md' });
