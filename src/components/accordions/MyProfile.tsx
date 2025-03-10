@@ -143,7 +143,7 @@ export const MyProfile = () => {
   };
 
   return (
-    <AccordionItem value="profile" className="border-none">
+    <AccordionItem value="profile" className="border-none text-sm">
       <AccordionTrigger className="py-2">
         <div className="flex items-center gap-2">
           {getProfileStatus().icon}

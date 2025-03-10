@@ -1,14 +1,14 @@
 export const Footer = () => {
   return (
     <footer className="text-center p-2 text-xs text-muted-foreground border-t mt-auto">
-      Not affiliated with{' '}
+      Found an issue?{' '}
       <a
-        href="https://ptcgp-tracker.com/"
+        href="https://github.com/raphalupi/ptcgp-tracker-tools/issues/new"
         target="_blank"
         rel="noopener noreferrer"
         className="underline hover:text-foreground transition-colors"
       >
-        PTCGP Tracker
+        Report a bug
       </a>
     </footer>
   );
