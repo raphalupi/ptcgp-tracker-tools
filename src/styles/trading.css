@@ -1,26 +1,40 @@
+/* Updates native card styles */
 .card[data-rarity]:after {
   font-size: 2rem;
 }
 
-/* Rarity visibility */
-.card[data-rarity="♢"] {
-  display: var(--diamond1-display, block) !important;
+/* Hide collection classes */
+body.hide-collection-A1 .card[data-collection="A1"] {
+  display: none !important;
 }
 
-.card[data-rarity="♢♢"] {
-  display: var(--diamond2-display, block) !important;
+body.hide-collection-A1a .card[data-collection="A1a"] {
+  display: none !important;
 }
 
-.card[data-rarity="♢♢♢"] {
-  display: var(--diamond3-display, block) !important;
+body.hide-collection-A2 .card[data-collection="A2"] {
+  display: none !important;
 }
 
-.card[data-rarity="♢♢♢♢"] {
-  display: var(--diamond4-display, block) !important;
+/* Hide rarity classes */
+body.hide-rarity-diamond1 .card[data-rarity="♢"] {
+  display: none !important;
 }
 
-.card[data-rarity="☆"] {
-  display: var(--star1-display, block) !important;
+body.hide-rarity-diamond2 .card[data-rarity="♢♢"] {
+  display: none !important;
+}
+
+body.hide-rarity-diamond3 .card[data-rarity="♢♢♢"] {
+  display: none !important;
+}
+
+body.hide-rarity-diamond4 .card[data-rarity="♢♢♢♢"] {
+  display: none !important;
+}
+
+body.hide-rarity-star1 .card[data-rarity="☆"] {
+  display: none !important;
 }
 
 /* Only show trade match styles when body has show-trade-overlay class */

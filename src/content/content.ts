@@ -35,6 +35,9 @@ interface TradingSettings {
   rarityToggles: {
     [key: string]: boolean;
   };
+  collectionToggles: {
+    [key: string]: boolean;
+  };
 }
 
 const DEFAULT_SETTINGS: TradingSettings = {
@@ -45,7 +48,16 @@ const DEFAULT_SETTINGS: TradingSettings = {
     'diamond2': true,
     'diamond3': true,
     'diamond4': true,
-    'star1': true
+    'star1': true,
+    // 'star2': true, // Currently not available
+    // 'star3': true, // Currently not available
+    // 'crown1': true // Currently not available
+  },
+  collectionToggles: {
+    'A1': true,
+    'A1a': true,
+    'A2': true,
+    // 'A2a': false, // Currently not available
   }
 };
 
@@ -172,6 +184,25 @@ function analyzeTradingOpportunities(myProfile: TradingProfile, theirProfile: Tr
   return opportunities;
 }
 
+// Function to set collection data attributes on cards
+function setCollectionAttributes(): void {
+  document.querySelectorAll('.card').forEach(el => {
+    const imgElement = el.querySelector('img');
+    if (imgElement) {
+      const imgSrc = imgElement.getAttribute('src');
+      if (imgSrc) {
+        const urlMatch = imgSrc.match(/\/files\/([^/]+)\/cards\/(\d+)\.webp$/);
+        if (urlMatch) {
+          const collectionCode = Object.entries(setIdToCodeMapping).find(([, code]) => code === urlMatch[1])?.[0];
+          if (collectionCode) {
+            el.setAttribute('data-collection', collectionCode);
+          }
+        }
+      }
+    }
+  });
+}
+
 // Highlight matching cards on screen
 function highlightMatchingCards(opportunities: TradingOpportunity): void {
   // Remove existing highlights
@@ -233,6 +264,9 @@ async function applySettingsToPage(): Promise<void> {
     return;
   }
 
+  // Set collection attributes on all cards
+  setCollectionAttributes();
+
   const settings = await loadTradingSettings();
   console.log('Applying settings to page:', settings);
 
@@ -267,10 +301,22 @@ async function applySettingsToPage(): Promise<void> {
 
   // Apply rarity visibility settings
   Object.entries(settings.rarityToggles).forEach(([rarityCode, isVisible]) => {
-    document.documentElement.style.setProperty(
-      `--${rarityCode}-display`,
-      isVisible ? 'block' : 'none'
-    );
+    const hideClass = `hide-rarity-${rarityCode}`;
+    if (isVisible) {
+      document.body.classList.remove(hideClass);
+    } else {
+      document.body.classList.add(hideClass);
+    }
+  });
+
+  // Apply collection visibility settings
+  Object.entries(settings.collectionToggles).forEach(([collectionCode, isVisible]) => {
+    const hideClass = `hide-collection-${collectionCode}`;
+    if (isVisible) {
+      document.body.classList.remove(hideClass);
+    } else {
+      document.body.classList.add(hideClass);
+    }
   });
 }
 

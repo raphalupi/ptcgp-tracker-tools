@@ -16,6 +16,13 @@ const RARITY_TO_SYMBOL: Record<string, string> = {
   'star1': '☆'
 };
 
+const COLLECTION_TO_NAME: Record<string, string> = {
+  'A1': 'Genetic Apex',
+  'A1a': 'Mythical Island',
+  'A2': 'Space Time Smackdown',
+  // 'A2a': 'Triumphant Light', // Currently not available
+};
+
 function getRaritySymbol(rarityCode: string): string {
   return RARITY_TO_SYMBOL[rarityCode] || rarityCode;
 }
@@ -32,13 +39,21 @@ type RarityToggles = {
   [K in keyof typeof RARITIES]: boolean;
 };
 
+type CollectionToggles = {
+  [K in keyof typeof COLLECTION_TO_NAME]: boolean;
+};
+
 const DEFAULT_SETTINGS = {
   showTradeOverlay: true,
   showMatchedOnly: false,
   rarityToggles: Object.keys(RARITIES).reduce((acc, rarity) => ({
     ...acc,
     [rarity]: true
-  }), {} as RarityToggles)
+  }), {} as RarityToggles),
+  collectionToggles: Object.keys(COLLECTION_TO_NAME).reduce((acc, collection) => ({
+    ...acc,
+    [collection]: true
+  }), {} as CollectionToggles)
 };
 
 export const TradingSettings = () => {
@@ -48,6 +63,14 @@ export const TradingSettings = () => {
       ...acc,
       [rarity]: true
     }), {} as RarityToggles);
+  });
+
+  const [collectionToggles, setCollectionToggles] = useState<CollectionToggles>(() => {
+    // Initialize all collections to true (visible)
+    return Object.keys(COLLECTION_TO_NAME).reduce((acc, collection) => ({
+      ...acc,
+      [collection]: true
+    }), {} as CollectionToggles);
   });
 
   const [showTradeOverlay, setShowTradeOverlay] = useState(true);
@@ -62,6 +85,9 @@ export const TradingSettings = () => {
         setShowMatchedOnly(result.tradingSettings.showMatchedOnly);
         if (result.tradingSettings.rarityToggles) {
           setRarityToggles(result.tradingSettings.rarityToggles);
+        }
+        if (result.tradingSettings.collectionToggles) {
+          setCollectionToggles(result.tradingSettings.collectionToggles);
         }
       }
     });
@@ -85,7 +111,8 @@ export const TradingSettings = () => {
     const settings = {
       showTradeOverlay,
       showMatchedOnly,
-      rarityToggles
+      rarityToggles,
+      collectionToggles
     };
 
     // Save to storage
@@ -102,7 +129,7 @@ export const TradingSettings = () => {
         }
       });
     });
-  }, [showTradeOverlay, showMatchedOnly, rarityToggles]);
+  }, [showTradeOverlay, showMatchedOnly, rarityToggles, collectionToggles]);
 
   const handleToggleChange = (rarity: keyof typeof RARITIES) => {
     setRarityToggles(prev => ({
@@ -111,10 +138,18 @@ export const TradingSettings = () => {
     }));
   };
 
+  const handleCollectionToggleChange = (collection: keyof typeof COLLECTION_TO_NAME) => {
+    setCollectionToggles(prev => ({
+      ...prev,
+      [collection]: !prev[collection]
+    }));
+  };
+
   const handleResetSettings = () => {
     setShowTradeOverlay(DEFAULT_SETTINGS.showTradeOverlay);
     setShowMatchedOnly(DEFAULT_SETTINGS.showMatchedOnly);
     setRarityToggles(DEFAULT_SETTINGS.rarityToggles);
+    setCollectionToggles(DEFAULT_SETTINGS.collectionToggles);
   };
 
   return (
@@ -128,11 +163,6 @@ export const TradingSettings = () => {
       <AccordionContent>
         <div className="space-y-4 mt-2">
           {/* Warning Messages */}
-          {badgeState === 'yellow' && (
-            <span className="text-yellow-400 text-xs flex items-center gap-1">
-              <AlertCircleIcon className="h-3 w-3" /> Filters will not apply to your own cards.
-            </span>
-          )}
           {badgeState === 'gray' && (
             <span className="text-gray-400 text-xs flex items-center gap-1">
               <AlertCircleIcon className="h-3 w-3" /> Filters only apply to trading profiles.
@@ -165,8 +195,8 @@ export const TradingSettings = () => {
 
           {/* Rarity Toggles */}
           <div className="space-y-3">
-            <p className="text-xs font-medium">Show/Hide Rarities</p>
-            <div className="grid grid-cols-5 gap-2">
+            <p className="text-xs font-medium">Show/Hide Rarities:</p>
+            <div className="grid grid-cols-5 gap-2 pl-2">
               {Object.entries(RARITIES).map(([rarityCode, label]) => (
                 <div key={rarityCode} className="flex flex-col items-center gap-1.5">
                   <Label 
@@ -180,6 +210,29 @@ export const TradingSettings = () => {
                     id={`rarity-${rarityCode}`}
                     checked={rarityToggles[rarityCode as keyof typeof RARITIES]}
                     onCheckedChange={() => handleToggleChange(rarityCode as keyof typeof RARITIES)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Collection Toggles */}
+          <div className="space-y-3">
+            <p className="text-xs font-medium">Show/Hide Collections:</p>
+            <div className="space-y-2 pl-2">
+              {Object.entries(COLLECTION_TO_NAME).map(([collectionCode, name]) => (
+                <div key={collectionCode} className="flex items-center justify-between">
+                  <Label 
+                    htmlFor={`collection-${collectionCode}`} 
+                    className="text-xs cursor-pointer"
+                    title={name}
+                  >
+                    {name}
+                  </Label>
+                  <Switch
+                    id={`collection-${collectionCode}`}
+                    checked={collectionToggles[collectionCode as keyof typeof COLLECTION_TO_NAME]}
+                    onCheckedChange={() => handleCollectionToggleChange(collectionCode as keyof typeof COLLECTION_TO_NAME)}
                   />
                 </div>
               ))}
