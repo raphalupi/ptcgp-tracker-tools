@@ -219,8 +219,20 @@ function highlightMatchingCards(opportunities: TradingOpportunity): void {
   highlightCards(opportunities.myTradableTheyWant, 'trading-match-you-have');
 }
 
+// Function to check if we're on a proper trading profile page
+function isTradingProfilePage(): boolean {
+  const url = window.location.href;
+  return url.startsWith('https://ptcgp-tracker.com/u/') && url.length > 'https://ptcgp-tracker.com/u/'.length;
+}
+
 // Function to apply settings to the page
 async function applySettingsToPage(): Promise<void> {
+  // Only apply settings on trading profile pages
+  if (!isTradingProfilePage()) {
+    console.log('Not a trading profile page, skipping settings application');
+    return;
+  }
+
   const settings = await loadTradingSettings();
   console.log('Applying settings to page:', settings);
 
