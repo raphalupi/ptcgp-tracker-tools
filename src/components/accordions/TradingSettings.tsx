@@ -8,12 +8,24 @@ import {
 } from '@/components/ui/accordion';
 import { CogIcon } from 'lucide-react';
 
+const RARITY_TO_SYMBOL: Record<string, string> = {
+  'diamond1': '♢',
+  'diamond2': '♢♢',
+  'diamond3': '♢♢♢',
+  'diamond4': '♢♢♢♢',
+  'star1': '☆'
+};
+
+function getRaritySymbol(rarityCode: string): string {
+  return RARITY_TO_SYMBOL[rarityCode] || rarityCode;
+}
+
 const RARITIES = {
-  '♢': 'Common',
-  '♢♢': 'Uncommon',
-  '♢♢♢': 'Rare',
-  '♢♢♢♢': 'Ultra Rare',
-  '☆': 'Special',
+  'diamond1': 'Common',
+  'diamond2': 'Uncommon',
+  'diamond3': 'Rare',
+  'diamond4': 'Ultra Rare',
+  'star1': 'Special',
 } as const;
 
 type RarityToggles = {
@@ -32,80 +44,66 @@ export const TradingSettings = () => {
   const [showTradeOverlay, setShowTradeOverlay] = useState(true);
   const [showMatchedOnly, setShowMatchedOnly] = useState(false);
 
+  // Load settings on mount
+  useEffect(() => {
+    chrome.storage.local.get('tradingSettings', (result) => {
+      if (result.tradingSettings) {
+        setShowTradeOverlay(result.tradingSettings.showTradeOverlay);
+        setShowMatchedOnly(result.tradingSettings.showMatchedOnly);
+        if (result.tradingSettings.rarityToggles) {
+          setRarityToggles(result.tradingSettings.rarityToggles);
+        }
+      }
+    });
+  }, []);
+
+  // Save settings when they change
+  useEffect(() => {
+    chrome.storage.local.set({
+      tradingSettings: {
+        showTradeOverlay,
+        showMatchedOnly,
+        rarityToggles
+      }
+    });
+  }, [showTradeOverlay, showMatchedOnly, rarityToggles]);
+
   // Update CSS classes on the body when toggles change
   useEffect(() => {
     // Get all tabs and update them
     chrome.tabs.query({ url: 'https://ptcgp-tracker.com/*' }, (tabs) => {
       tabs.forEach(tab => {
         if (tab.id) {
-          // Inject CSS if not already injected
-          chrome.scripting.insertCSS({
-            target: { tabId: tab.id },
-            css: `
-              /* Hide cards of specific rarity when body has the corresponding attribute */
-              ${Object.keys(RARITIES).map(rarity => `
-                body[data-hide-rarity] .card[data-rarity="${rarity}"] {
-                  display: var(--${rarity}-display, block) !important;
-                }
-              `).join('\n')}
-
-              /* Hide trade overlay when disabled */
-              body[data-hide-trade-overlay] .card.trading-match-they-have,
-              body[data-hide-trade-overlay] .card.trading-match-you-have {
-                border: none !important;
-                box-shadow: none !important;
-              }
-
-              /* Hide non-matched cards when show-matched-only is enabled */
-              body[data-show-matched-only] .card:not(.trading-match-they-have):not(.trading-match-you-have) {
-                display: none !important;
-              }
-            `
-          }).catch(console.error);
-
           // Execute script to update body attributes
           chrome.scripting.executeScript({
             target: { tabId: tab.id },
-            func: (toggles: RarityToggles, hideOverlay: boolean, matchedOnly: boolean) => {
-              const hiddenRarities = Object.entries(toggles)
-                .filter(([, isVisible]) => !isVisible)
-                .map(([rarity]) => rarity);
+            func: (showOverlay: boolean, matchedOnly: boolean, toggles: RarityToggles) => {
+              if (showOverlay) {
+                document.body.classList.add('show-trade-overlay');
+              } else {
+                document.body.classList.remove('show-trade-overlay');
+              }
 
-              // Set CSS variables for each rarity
-              Object.keys(toggles).forEach(rarity => {
+              if (matchedOnly) {
+                document.body.classList.add('show-matched-only');
+              } else {
+                document.body.classList.remove('show-matched-only');
+              }
+
+              // Update rarity visibility
+              Object.entries(toggles).forEach(([rarity, isVisible]) => {
                 document.documentElement.style.setProperty(
                   `--${rarity}-display`,
-                  hiddenRarities.includes(rarity) ? 'none' : 'block'
+                  isVisible ? 'block' : 'none'
                 );
               });
-
-              // Keep track of hidden rarities in data attribute for debugging
-              if (hiddenRarities.length > 0) {
-                document.body.setAttribute('data-hide-rarity', hiddenRarities.join(','));
-              } else {
-                document.body.removeAttribute('data-hide-rarity');
-              }
-
-              // Toggle trade overlay visibility
-              if (hideOverlay) {
-                document.body.setAttribute('data-hide-trade-overlay', '');
-              } else {
-                document.body.removeAttribute('data-hide-trade-overlay');
-              }
-
-              // Toggle matched-only display
-              if (matchedOnly) {
-                document.body.setAttribute('data-show-matched-only', '');
-              } else {
-                document.body.removeAttribute('data-show-matched-only');
-              }
             },
-            args: [rarityToggles, !showTradeOverlay, showMatchedOnly]
+            args: [showTradeOverlay, showMatchedOnly, rarityToggles]
           }).catch(console.error);
         }
       });
     });
-  }, [rarityToggles, showTradeOverlay, showMatchedOnly]);
+  }, [showTradeOverlay, showMatchedOnly, rarityToggles]);
 
   const handleToggleChange = (rarity: keyof typeof RARITIES) => {
     setRarityToggles(prev => ({
@@ -152,19 +150,19 @@ export const TradingSettings = () => {
           <div className="space-y-3">
             <p className="text-sm font-medium">Show/Hide Rarities</p>
             <div className="grid grid-cols-5 gap-2">
-              {Object.entries(RARITIES).map(([rarity, label]) => (
-                <div key={rarity} className="flex flex-col items-center gap-1.5">
+              {Object.entries(RARITIES).map(([rarityCode, label]) => (
+                <div key={rarityCode} className="flex flex-col items-center gap-1.5">
                   <Label 
-                    htmlFor={`rarity-${rarity}`} 
+                    htmlFor={`rarity-${rarityCode}`} 
                     className="text-sm cursor-pointer"
                     title={label}
                   >
-                    <span className="font-mono text-base">{rarity}</span>
+                    <span className="font-mono text-base">{getRaritySymbol(rarityCode)}</span>
                   </Label>
                   <Switch
-                    id={`rarity-${rarity}`}
-                    checked={rarityToggles[rarity as keyof typeof RARITIES]}
-                    onCheckedChange={() => handleToggleChange(rarity as keyof typeof RARITIES)}
+                    id={`rarity-${rarityCode}`}
+                    checked={rarityToggles[rarityCode as keyof typeof RARITIES]}
+                    onCheckedChange={() => handleToggleChange(rarityCode as keyof typeof RARITIES)}
                   />
                 </div>
               ))}

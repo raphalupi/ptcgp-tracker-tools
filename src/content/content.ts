@@ -29,6 +29,63 @@ interface TradingOpportunity {
   myTradableTheyWant: Map<string, Set<string>>;
 }
 
+interface TradingSettings {
+  showTradeOverlay: boolean;
+  showMatchedOnly: boolean;
+  rarityToggles: {
+    [key: string]: boolean;
+  };
+}
+
+const DEFAULT_SETTINGS: TradingSettings = {
+  showTradeOverlay: true,
+  showMatchedOnly: false,
+  rarityToggles: {
+    'diamond1': true,
+    'diamond2': true,
+    'diamond3': true,
+    'diamond4': true,
+    'star1': true
+  }
+};
+
+// Storage functions
+async function loadTradingSettings(): Promise<TradingSettings> {
+  try {
+    console.log('Loading trading settings...');
+    const result = await chrome.storage.local.get('tradingSettings');
+    console.log('Loaded settings from storage:', result);
+    
+    if (!result.tradingSettings) {
+      console.log('No settings found, using defaults');
+      // Save default settings to storage
+      await chrome.storage.local.set({ tradingSettings: DEFAULT_SETTINGS });
+      return DEFAULT_SETTINGS;
+    }
+    
+    return result.tradingSettings;
+  } catch (error) {
+    console.error('Error loading trading settings:', error);
+    return DEFAULT_SETTINGS;
+  }
+}
+
+async function saveTradingSettings(settings: Partial<TradingSettings>): Promise<void> {
+  try {
+    console.log('Saving trading settings:', settings);
+    const currentSettings = await loadTradingSettings();
+    const newSettings = {
+      ...currentSettings,
+      ...settings,
+    };
+    console.log('New settings to save:', newSettings);
+    await chrome.storage.local.set({ tradingSettings: newSettings });
+    console.log('Settings saved successfully');
+  } catch (error) {
+    console.error('Error saving trading settings:', error);
+  }
+}
+
 // Rarity mapping
 const RARITY_TO_SYMBOL: Record<string, string> = {
   'diamond1': '♢',
@@ -49,7 +106,7 @@ function getRaritySymbol(rarityCode: string): string {
   return RARITY_TO_SYMBOL[rarityCode] || rarityCode;
 }
 
-// Helper functions
+// Extract trading data from the page
 function getTradingDataFromPage(): TradingData | null {
   try {
     const scriptElement = document.querySelector('script[data-drupal-selector="drupal-settings-json"]');
@@ -64,11 +121,12 @@ function getTradingDataFromPage(): TradingData | null {
   }
 }
 
+// Check if the viewed profile is the own profile
 function isOwnProfile(data: TradingData): boolean {
   return data.profile.user.uid === data.viewed_profile?.user.uid;
 }
 
-// Trading analysis functions
+// Analyze trading opportunities between two profiles
 function analyzeTradingOpportunities(myProfile: TradingProfile, theirProfile: TradingProfile): TradingOpportunity {
   const opportunities: TradingOpportunity = {
     theirTradableIWant: new Map(),
@@ -114,6 +172,7 @@ function analyzeTradingOpportunities(myProfile: TradingProfile, theirProfile: Tr
   return opportunities;
 }
 
+// Highlight matching cards on screen
 function highlightMatchingCards(opportunities: TradingOpportunity): void {
   // Remove existing highlights
   const existingHighlights = document.querySelectorAll('.trading-match-they-have, .trading-match-you-have');
@@ -148,7 +207,6 @@ function highlightMatchingCards(opportunities: TradingOpportunity): void {
             return matches;
           });
         
-        console.log(`## Card elements: ${cardElements}`);
         cardElements.forEach(el => {
           el.classList.add(className);
         });
@@ -162,19 +220,47 @@ function highlightMatchingCards(opportunities: TradingOpportunity): void {
 }
 
 // Main analysis function
-function analyzeTradingPage(): void {
+async function analyzeTradingPage(): Promise<void> {
+  console.log('Starting trading page analysis...');
+  const settings = await loadTradingSettings();
+  console.log('Current settings:', settings);
  
   const tradingData = getTradingDataFromPage();
   if (!tradingData || !tradingData.viewed_profile) {
+    console.log('No trading data found');
     return;
   }
 
   if (isOwnProfile(tradingData)) {
+    console.log('Cannot analyze own profile');
     return;
   }
 
   const opportunities = analyzeTradingOpportunities(tradingData.profile, tradingData.viewed_profile);
+  
+  // Always apply the classes for matching cards
   highlightMatchingCards(opportunities);
+
+  // Apply CSS classes to body based on settings
+  if (settings.showTradeOverlay) {
+    document.body.classList.add('show-trade-overlay');
+  } else {
+    document.body.classList.remove('show-trade-overlay');
+  }
+
+  if (settings.showMatchedOnly) {
+    document.body.classList.add('show-matched-only');
+  } else {
+    document.body.classList.remove('show-matched-only');
+  }
+
+  // Apply rarity visibility settings
+  Object.entries(settings.rarityToggles).forEach(([rarityCode, isVisible]) => {
+    document.documentElement.style.setProperty(
+      `--${rarityCode}-display`,
+      isVisible ? 'block' : 'none'
+    );
+  });
 
   console.log('Trading analysis complete:', {
     cardsTheyHaveThatIWant: Array.from(opportunities.theirTradableIWant.entries()).reduce((total, [, cards]) => total + cards.size, 0),
@@ -190,6 +276,20 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === 'getTradingData') {
     const data = getTradingDataFromPage();
     sendResponse(data);
+    return true;
+  }
+
+  if (message.action === 'updateTradingSettings') {
+    saveTradingSettings(message.settings)
+      .then(() => sendResponse(true))
+      .catch(() => sendResponse(false));
+    return true;
+  }
+
+  if (message.action === 'getTradingSettings') {
+    loadTradingSettings()
+      .then(settings => sendResponse(settings))
+      .catch(() => sendResponse(DEFAULT_SETTINGS));
     return true;
   }
 

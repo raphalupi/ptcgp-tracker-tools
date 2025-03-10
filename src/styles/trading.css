@@ -2,14 +2,36 @@
   font-size: 2rem;
 }
 
-.card.trading-match-they-have {
+/* Rarity visibility */
+.card[data-rarity="♢"] {
+  display: var(--diamond1-display, block) !important;
+}
+
+.card[data-rarity="♢♢"] {
+  display: var(--diamond2-display, block) !important;
+}
+
+.card[data-rarity="♢♢♢"] {
+  display: var(--diamond3-display, block) !important;
+}
+
+.card[data-rarity="♢♢♢♢"] {
+  display: var(--diamond4-display, block) !important;
+}
+
+.card[data-rarity="☆"] {
+  display: var(--star1-display, block) !important;
+}
+
+/* Only show trade match styles when body has show-trade-overlay class */
+body.show-trade-overlay .card.trading-match-they-have {
   position: relative;
   border: 2px solid gold !important;
   box-shadow: 0 0 5px gold !important;
   transition: all 0.2s ease-in-out;
 }
 
-.card.trading-match-they-have::before {
+body.show-trade-overlay .card.trading-match-they-have::before {
   content: 'You want it';
   position: absolute;
   bottom: 0;
@@ -25,14 +47,14 @@
   z-index: 10;
 }
 
-.card.trading-match-you-have {
+body.show-trade-overlay .card.trading-match-you-have {
   position: relative;
   border: 2px solid #4CAF50 !important;
   box-shadow: 0 0 5px #4CAF50 !important;
   transition: all 0.2s ease-in-out;
 }
 
-.card.trading-match-you-have::before {
+body.show-trade-overlay .card.trading-match-you-have::before {
   content: 'You have it';
   position: absolute;
   bottom: 0;
@@ -46,4 +68,9 @@
   white-space: nowrap;
   opacity: 1;
   z-index: 10;
+}
+
+/* Hide non-matched cards when body has show-matched-only class */
+body.show-matched-only .card:not(.trading-match-they-have):not(.trading-match-you-have) {
+  display: none !important;
 } 
