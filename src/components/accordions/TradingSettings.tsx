@@ -6,7 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { CogIcon, RotateCcwIcon } from 'lucide-react';
+import { AlertCircleIcon, CogIcon, RotateCcwIcon } from 'lucide-react';
 
 const RARITY_TO_SYMBOL: Record<string, string> = {
   'diamond1': '♢',
@@ -52,6 +52,7 @@ export const TradingSettings = () => {
 
   const [showTradeOverlay, setShowTradeOverlay] = useState(true);
   const [showMatchedOnly, setShowMatchedOnly] = useState(false);
+  const [badgeState, setBadgeState] = useState<'none' | 'gray' | 'yellow' | 'green'>('none');
 
   // Load settings on mount
   useEffect(() => {
@@ -62,6 +63,19 @@ export const TradingSettings = () => {
         if (result.tradingSettings.rarityToggles) {
           setRarityToggles(result.tradingSettings.rarityToggles);
         }
+      }
+    });
+  }, []);
+
+  // Get current tab's badge state
+  useEffect(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'getBadgeState' }, (response) => {
+          if (response?.state) {
+            setBadgeState(response.state);
+          }
+        });
       }
     });
   }, []);
@@ -113,6 +127,18 @@ export const TradingSettings = () => {
       </AccordionTrigger>
       <AccordionContent>
         <div className="space-y-4 mt-2">
+          {/* Warning Messages */}
+          {badgeState === 'yellow' && (
+            <span className="text-yellow-400 text-xs flex items-center gap-1">
+              <AlertCircleIcon className="h-3 w-3" /> Filters will not apply to your own cards.
+            </span>
+          )}
+          {badgeState === 'gray' && (
+            <span className="text-gray-400 text-xs flex items-center gap-1">
+              <AlertCircleIcon className="h-3 w-3" /> Filters only apply to trading profiles.
+            </span>
+          )}
+
           {/* Trade Overlay Toggle */}
           <div className="flex items-center justify-between">
             <Label htmlFor="trade-overlay" className="text-xs font-medium">

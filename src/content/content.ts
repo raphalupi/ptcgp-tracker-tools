@@ -305,31 +305,33 @@ async function analyzeTradingPage(): Promise<void> {
   });
 }
 
-// Function to update badge state
-function updateBadgeState() {
+// Function to determine badge state
+function getBadgeState(): 'none' | 'gray' | 'yellow' | 'green' {
   // If not on the website, badge will be hidden by background script
   if (!window.location.href.startsWith('https://ptcgp-tracker.com')) {
-    return;
+    return 'none';
   }
 
   const tradingData = getTradingDataFromPage();
   const isTradingProfile = isTradingProfilePage();
 
-  let state: 'none' | 'gray' | 'yellow' | 'green' = 'none';
-
   if (isTradingProfile) {
     if (!tradingData) {
-      state = 'gray'; // No trading data available
+      return 'gray'; // No trading data available
     } else if (isOwnProfile(tradingData)) {
-      state = 'yellow'; // Own profile
+      return 'yellow'; // Own profile
     } else {
-      state = 'green'; // Viewing someone else's profile
+      return 'green'; // Viewing someone else's profile
     }
   } else {
-    state = 'gray'; // Other pages on the site
+    return 'gray'; // Other pages on the site
   }
+}
 
-  console.log('Updating badge state:', { state, isTradingProfile, tradingData });
+// Function to update badge state
+function updateBadgeState() {
+  const state = getBadgeState();
+  console.log('Updating badge state:', { state });
   chrome.runtime.sendMessage({
     action: 'updateBadge',
     state
@@ -362,6 +364,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     loadTradingSettings()
       .then(settings => sendResponse(settings))
       .catch(() => sendResponse(DEFAULT_SETTINGS));
+    return true;
+  }
+
+  if (message.action === 'getBadgeState') {
+    const state = getBadgeState();
+    sendResponse({ state });
     return true;
   }
 
