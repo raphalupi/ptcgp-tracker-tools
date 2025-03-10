@@ -305,6 +305,37 @@ async function analyzeTradingPage(): Promise<void> {
   });
 }
 
+// Function to update badge state
+function updateBadgeState() {
+  // If not on the website, badge will be hidden by background script
+  if (!window.location.href.startsWith('https://ptcgp-tracker.com')) {
+    return;
+  }
+
+  const tradingData = getTradingDataFromPage();
+  const isTradingProfile = isTradingProfilePage();
+
+  let state: 'none' | 'gray' | 'yellow' | 'green' = 'none';
+
+  if (isTradingProfile) {
+    if (!tradingData) {
+      state = 'gray'; // No trading data available
+    } else if (isOwnProfile(tradingData)) {
+      state = 'yellow'; // Own profile
+    } else {
+      state = 'green'; // Viewing someone else's profile
+    }
+  } else {
+    state = 'gray'; // Other pages on the site
+  }
+
+  console.log('Updating badge state:', { state, isTradingProfile, tradingData });
+  chrome.runtime.sendMessage({
+    action: 'updateBadge',
+    state
+  });
+}
+
 // Initialize content script
 console.log('PTCGP Tracker Tools content script loaded');
 
@@ -343,6 +374,11 @@ console.log('Starting initial analysis and applying settings...');
 Promise.all([
   analyzeTradingPage(),
   applySettingsToPage()
-]).catch(error => {
+]).then(() => {
+  // Update badge state after analysis is complete
+  updateBadgeState();
+}).catch(error => {
   console.error('Error during initialization:', error);
+  // Update badge state even if there's an error
+  updateBadgeState();
 }); 
