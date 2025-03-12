@@ -10,9 +10,13 @@ export default defineConfig({
       targets: [
         {
           src: 'manifest.json',
-          dest: '.',
+          dest: '.'
+        },
+        {
+          src: 'public/icons/*',
+          dest: 'icons/'
         }
-      ],
+      ]
     }),
   ],
   resolve: {
